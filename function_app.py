@@ -4,6 +4,23 @@ import logging
 import pandas as pd
 import os
 
+
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+
+# Function to get the connection string from Azure Key Vault
+def get_connection_string():
+    key_vault_name = "access-data-kv"
+    secret_name = "data-connectionstring"
+    kv_uri = f"https://{key_vault_name}.vault.azure.net"
+
+    credential = DefaultAzureCredential()
+    client = SecretClient(vault_url=kv_uri, credential=credential)
+
+    secret = client.get_secret(secret_name)
+    return secret.value
+
+
 app = func.FunctionApp(http_auth_level=func.AuthLevel.FUNCTION)
 
 @app.route(route="http_trigger_test")
@@ -48,7 +65,7 @@ def BlobTrigger_test(myblob: func.InputStream):
         new_csv_data = df.to_csv(index=False)
         
         # Retrieve the connection string from environment variables
-        connection_string = os.getenv("afsession1data_STORAGE")
+        connection_string = get_connection_string()
 
         # Upload the new CSV file back to the blob storage
         blob_service_client = BlobServiceClient.from_connection_string(connection_string)
